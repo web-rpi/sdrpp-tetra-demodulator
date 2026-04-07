@@ -30,7 +30,7 @@ fi
 
 echo Unpacking ZIP ...
 cd $CODECDIR
-unzip -L $PATCHDIR/etsi_tetra_codec.zip
+unzip -L $PATCHDIR/$LOCAL_FILE
 echo Contents of $CODECDIR:
 ls -lah
 
