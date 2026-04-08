@@ -3,6 +3,7 @@ on:
     push:
         branches:
         - master
+        - dev
 
 env:
     # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
