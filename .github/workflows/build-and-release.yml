@@ -139,9 +139,9 @@ jobs:
           with:
               name: tetra_demodulator_win_pdb
               path: build/RelWithDebInfo/tetra_demodulator.pdb
-    release_master:
-        name: Publish master release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    release_branch:
+        name: Publish branch release
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dev')
         needs:
         - build_linux_x86_64
         - build_linux_aarch64
@@ -179,19 +179,20 @@ jobs:
           env:
               GH_TOKEN: ${{ github.token }}
           run: |
-            release_tag="master-${GITHUB_SHA}"
+            branch_name="${GITHUB_REF_NAME}"
+            release_tag="${branch_name}-${GITHUB_SHA}"
             short_sha="${GITHUB_SHA::7}"
 
             if gh release view "${release_tag}" --repo "${{ github.repository }}" >/dev/null 2>&1; then
               gh release upload "${release_tag}" release-assets/out/* --repo "${{ github.repository }}" --clobber
               gh release edit "${release_tag}" \
                 --repo "${{ github.repository }}" \
-                --title "master-${short_sha}" \
-                --notes "Automatic release from master for commit ${{ github.sha }}."
+                --title "${branch_name}-${short_sha}" \
+                --notes "Automatic release from ${branch_name} for commit ${{ github.sha }}."
             else
               gh release create "${release_tag}" release-assets/out/* \
                 --repo "${{ github.repository }}" \
                 --target "${{ github.sha }}" \
-                --title "master-${short_sha}" \
-                --notes "Automatic release from master for commit ${{ github.sha }}."
+                --title "${branch_name}-${short_sha}" \
+                --notes "Automatic release from ${branch_name} for commit ${{ github.sha }}."
             fi
