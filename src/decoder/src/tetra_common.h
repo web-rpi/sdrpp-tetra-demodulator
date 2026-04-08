@@ -283,6 +283,11 @@ struct tetra_display_state {
 	int mcc;//
 	int mnc;//
 	int cc;//
+	int system_code;//
+	int sharing_mode;//
+	int ts_reserved_frames;//
+	int u_plane_dtx;//
+	int frame18_extension;//
 	int la;//
 	int call_id;//
 	int call_type;//

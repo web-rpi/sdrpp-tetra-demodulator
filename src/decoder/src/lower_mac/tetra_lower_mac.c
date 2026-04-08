@@ -115,6 +115,13 @@ struct tetra_cell_data {
 
 static struct tetra_cell_data _tcd, *tcd = &_tcd;
 
+static int decode_ts_reserved_frames(uint8_t value)
+{
+	static const int ts_reserved_frame_table[8] = { 1, 2, 3, 4, 6, 9, 12, 18 };
+
+	return ts_reserved_frame_table[value & 0x7];
+}
+
 int is_bsch(struct tetra_tdma_time *tm)
 {
 	if (tm->fn == 18 && tm->tn == 4 - ((tm->mn+1)%4))
@@ -261,6 +268,11 @@ void tp_sap_udata_ind(enum tp_sap_data_type type, int blk_num, const uint8_t *bi
 			tcd->time.mn = bits_to_uint(type2+17, 6);
 			tcd->mcc = bits_to_uint(type2+31, 10);
 			tcd->mnc = bits_to_uint(type2+41, 14);
+			tms->t_display_st->system_code = bits_to_uint(type2+0, 4);
+			tms->t_display_st->sharing_mode = bits_to_uint(type2+23, 2);
+			tms->t_display_st->ts_reserved_frames = decode_ts_reserved_frames(bits_to_uint(type2+25, 3));
+			tms->t_display_st->u_plane_dtx = bits_to_uint(type2+28, 1);
+			tms->t_display_st->frame18_extension = bits_to_uint(type2+29, 1);
 			/* compute the scrambling code for the current cell */
 			tcd->scramb_init = tetra_scramb_get_init(tcd->mcc, tcd->mnc, tcd->colour_code);
 		}

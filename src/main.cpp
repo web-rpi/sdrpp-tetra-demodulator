@@ -9,6 +9,7 @@
 #include <module.h>
 // #include <unistd.h>
 #include <fstream>
+#include <cstring>
 
 #include <dsp/demod/psk.h>
 #include <dsp/buffer/packer.h>
@@ -305,8 +306,44 @@ private:
             if (ImGui::CollapsingHeader(CONCAT("Cell Info##_tetrademod_cell_info_", _this->name), ImGuiTreeNodeFlags_DefaultOpen)) {
                 int dl_usg = _this->osmotetradecoder.getDlUsage();
                 int ul_usg = _this->osmotetradecoder.getUlUsage();
-                int duplex_table = _this->osmotetradecoder.getCallDuplexTable();
                 int duplex_spacing_khz = _this->osmotetradecoder.getCallDuplexSpacingKHz();
+                const char* cell_offset = _this->osmotetradecoder.getCellOffsetText();
+                int reverse_operation = _this->osmotetradecoder.getCellReverseOperation();
+                int number_of_common_sc = _this->osmotetradecoder.getCellNumberOfCommonSc();
+                int ms_txpwr_max_cell = _this->osmotetradecoder.getCellMsTxPwrMaxCell();
+                int rxlevel_access_min = _this->osmotetradecoder.getCellRxLevelAccessMin();
+                int radio_downlink_timeout = _this->osmotetradecoder.getCellRadioDownlinkTimeout();
+                const char* hyperframe_or_cipher_key_flag = _this->osmotetradecoder.getCellHyperframeOrCipherKeyFlagText();
+                int cell_hyperframe = _this->osmotetradecoder.getCellHyperframe();
+                const char* optional_field_flag = _this->osmotetradecoder.getCellOptionalFieldFlagText();
+                int optional_field_value = _this->osmotetradecoder.getCellOptionalFieldValue();
+                int subscriber_class = _this->osmotetradecoder.getCellSubscriberClass();
+                int system_code = _this->osmotetradecoder.getCellSystemCode();
+                int sharing_mode = _this->osmotetradecoder.getCellSharingMode();
+                int ts_reserved_frames = _this->osmotetradecoder.getCellTsReservedFrames();
+                int u_plane_dtx = _this->osmotetradecoder.getCellUPlaneDtx();
+                int frame18_extension = _this->osmotetradecoder.getCellFrame18Extension();
+                int auth_required_on_cell = _this->osmotetradecoder.getCellAuthenticationRequiredOnCell();
+                int security_class_1_supported_on_cell = _this->osmotetradecoder.getCellSecurityClass1SupportedOnCell();
+                int security_class_3_supported_on_cell = _this->osmotetradecoder.getCellSecurityClass3SupportedOnCell();
+                auto drawTextValue = [](const char* label, const char* value) {
+                    ImGui::Text("%s", label); ImGui::SameLine();
+                    if (value && std::strcmp(value, "n/a") != 0) { ImGui::TextColored(ImVec4(0.95, 0.95, 0.05, 1.0), "%s", value); }
+                    else { ImGui::TextColored(ImVec4(0.8, 0.8, 0.8, 1.0), "n/a"); }
+                };
+                auto drawIntValue = [](const char* label, int value, const char* fmt = "%d") {
+                    ImGui::Text("%s", label); ImGui::SameLine();
+                    if (value >= 0) { ImGui::TextColored(ImVec4(0.95, 0.95, 0.05, 1.0), fmt, value); }
+                    else { ImGui::TextColored(ImVec4(0.8, 0.8, 0.8, 1.0), "n/a"); }
+                };
+                auto drawBoolValue = [&](const char* label, int value) {
+                    drawTextValue(label, value < 0 ? "n/a" : (value ? "Yes" : "No"));
+                };
+                auto drawHexValue = [](const char* label, int value, const char* fmt) {
+                    ImGui::Text("%s", label); ImGui::SameLine();
+                    if (value >= 0) { ImGui::TextColored(ImVec4(0.95, 0.95, 0.05, 1.0), fmt, value); }
+                    else { ImGui::TextColored(ImVec4(0.8, 0.8, 0.8, 1.0), "n/a"); }
+                };
                 ImGui::Text("DL:");ImGui::SameLine();
                 ImGui::TextColored(ImVec4(0.95, 0.95, 0.05, 1.0), "%7.3f", ((float)_this->osmotetradecoder.getDlFreq()/1000000.0f));ImGui::SameLine();
                 ImGui::Text(" MHz ");ImGui::SameLine();
@@ -331,12 +368,31 @@ private:
                 ImGui::TextColored(ImVec4(0.95, 0.95, 0.05, 1.0), "0x%02x", _this->osmotetradecoder.getCc());ImGui::SameLine();
                 ImGui::Text("| LA: ");ImGui::SameLine();
                 ImGui::TextColored(ImVec4(0.95, 0.95, 0.05, 1.0), "%05d", _this->osmotetradecoder.getLa());
-                ImGui::Text("Duplex Table:"); ImGui::SameLine();
-                if (duplex_table >= 0) { ImGui::TextColored(ImVec4(0.95, 0.95, 0.05, 1.0), "%d", duplex_table); }
-                else { ImGui::TextColored(ImVec4(0.8, 0.8, 0.8, 1.0), "n/a"); }
                 ImGui::Text("Duplex Spacing:"); ImGui::SameLine();
                 if (duplex_spacing_khz >= 0) { ImGui::TextColored(ImVec4(0.95, 0.95, 0.05, 1.0), "%.3f MHz", duplex_spacing_khz / 1000.0f); }
                 else { ImGui::TextColored(ImVec4(0.8, 0.8, 0.8, 1.0), "n/a"); }
+                drawTextValue("Offset:", cell_offset);
+                drawBoolValue("Reverse_Operation:", reverse_operation);
+                drawIntValue("NumberOfCommon_SC:", number_of_common_sc);
+                drawIntValue("MS_TXPwr_Max_Cell:", ms_txpwr_max_cell);
+                drawIntValue("RXLevel_Access_Min:", rxlevel_access_min);
+                drawIntValue("Radio_Downlink_Ttimeout:", radio_downlink_timeout);
+                drawTextValue("Hyperframe_or_Cipher_key_flag:", hyperframe_or_cipher_key_flag);
+                drawIntValue("Hyperframe:", cell_hyperframe);
+                drawTextValue("Optional_field_flag:", optional_field_flag);
+                drawHexValue("Optional_field_value:", optional_field_value, "0x%05X");
+                drawHexValue("Subscriber_Class:", subscriber_class, "0x%04X");
+                drawHexValue("SystemCode:", system_code, "0x%X");
+                drawIntValue("SharingMode:", sharing_mode);
+                drawIntValue("TSReservedFrames:", ts_reserved_frames);
+                drawBoolValue("UPlaneDTX:", u_plane_dtx);
+                drawBoolValue("Frame18Extension:", frame18_extension);
+                drawTextValue("NeighbourCellBroadcast:", "n/a");
+                drawTextValue("CellServiceLevel:", "n/a");
+                drawTextValue("LateEntryInfo:", "n/a");
+                drawBoolValue("Authentication_required_on_cell:", auth_required_on_cell);
+                drawBoolValue("Security_Class_1_supported_on_cell:", security_class_1_supported_on_cell);
+                drawBoolValue("Security_Class_3_supported_on_cell:", security_class_3_supported_on_cell);
                 ImVec4 on_color = ImVec4(0.05, 0.95, 0.05, 1.0);
                 ImVec4 off_color = ImVec4(0.95, 0.05, 0.05, 1.0);
                 ImGui::TextColored(_this->osmotetradecoder.getAdvancedLink() ? on_color : off_color, "Adv. link  ");ImGui::SameLine();

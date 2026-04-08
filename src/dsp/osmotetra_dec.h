@@ -61,6 +61,11 @@ namespace dsp {
             memset(tms->tcs, 0, sizeof(struct tetra_crypto_state));
             tms->t_display_st = (struct tetra_display_state*)malloc(sizeof(struct tetra_display_state));
             memset(tms->t_display_st, 0, sizeof(struct tetra_display_state));
+            tms->t_display_st->system_code = -1;
+            tms->t_display_st->sharing_mode = -1;
+            tms->t_display_st->ts_reserved_frames = -1;
+            tms->t_display_st->u_plane_dtx = -1;
+            tms->t_display_st->frame18_extension = -1;
             tms->t_display_st->call_duplex_table = -1;
             tms->t_display_st->call_duplex_spacing_khz = -1;
             tetra_reset_call_info_state(tms);
@@ -159,6 +164,114 @@ namespace dsp {
         }
         int getLa() {
             return tms->t_display_st->la;
+        }
+        bool hasCellSysInfo() {
+            return tms->t_display_st->dl_freq > 0;
+        }
+        const char* getCellOffsetText() {
+            if (!hasCellSysInfo()) {
+                return "n/a";
+            }
+            switch (tms->last_sid.freq_offset & 0x3) {
+                case 0: return "0.00 kHz";
+                case 1: return "+6.25 kHz";
+                case 2: return "-6.25 kHz";
+                case 3: return "+12.50 kHz";
+                default: return "n/a";
+            }
+        }
+        int getCellReverseOperation() {
+            return hasCellSysInfo() ? (tms->last_sid.reverse_operation ? 1 : 0) : -1;
+        }
+        int getCellNumberOfCommonSc() {
+            return hasCellSysInfo() ? tms->last_sid.num_of_csch : -1;
+        }
+        int getCellMsTxPwrMaxCell() {
+            return hasCellSysInfo() ? tms->last_sid.ms_txpwr_max_cell : -1;
+        }
+        int getCellRxLevelAccessMin() {
+            return hasCellSysInfo() ? tms->last_sid.rxlev_access_min : -1;
+        }
+        int getCellRadioDownlinkTimeout() {
+            return hasCellSysInfo() ? tms->last_sid.radio_dl_timeout : -1;
+        }
+        const char* getCellHyperframeOrCipherKeyFlagText() {
+            if (!hasCellSysInfo()) {
+                return "n/a";
+            }
+            return tms->last_sid.cck_valid_no_hf ? "Cipher key" : "Hyperframe";
+        }
+        int getCellHyperframe() {
+            return (hasCellSysInfo() && !tms->last_sid.cck_valid_no_hf) ? tms->last_sid.hyperframe_number : -1;
+        }
+        const char* getCellOptionalFieldFlagText() {
+            if (!hasCellSysInfo()) {
+                return "n/a";
+            }
+            switch (tms->last_sid.option_field) {
+                case TETRA_MAC_OPT_FIELD_EVEN_MULTIFRAME:
+                    return "Even multiframe";
+                case TETRA_MAC_OPT_FIELD_ODD_MULTIFRAME:
+                    return "Odd multiframe";
+                case TETRA_MAC_OPT_FIELD_ACCESS_CODE:
+                    return "Access code";
+                case TETRA_MAC_OPT_FIELD_EXT_SERVICES:
+                    return "Extended services";
+                default:
+                    return "n/a";
+            }
+        }
+        int getCellOptionalFieldValue() {
+            if (!hasCellSysInfo()) {
+                return -1;
+            }
+            switch (tms->last_sid.option_field) {
+                case TETRA_MAC_OPT_FIELD_EVEN_MULTIFRAME:
+                case TETRA_MAC_OPT_FIELD_ODD_MULTIFRAME:
+                    return (int)tms->last_sid.frame_bitmap;
+                case TETRA_MAC_OPT_FIELD_ACCESS_CODE:
+                    return (int)tms->last_sid.access_code;
+                case TETRA_MAC_OPT_FIELD_EXT_SERVICES:
+                    return (int)tms->last_sid.ext_service;
+                default:
+                    return -1;
+            }
+        }
+        int getCellSubscriberClass() {
+            return hasCellSysInfo() ? tms->last_sid.mle_si.subscr_class : -1;
+        }
+        int getCellSystemCode() {
+            return tms->t_display_st->system_code;
+        }
+        int getCellSharingMode() {
+            return tms->t_display_st->sharing_mode;
+        }
+        int getCellTsReservedFrames() {
+            return tms->t_display_st->ts_reserved_frames;
+        }
+        int getCellUPlaneDtx() {
+            return tms->t_display_st->u_plane_dtx;
+        }
+        int getCellFrame18Extension() {
+            return tms->t_display_st->frame18_extension;
+        }
+        int getCellAuthenticationRequiredOnCell() {
+            if (!hasCellSysInfo() || tms->last_sid.option_field != TETRA_MAC_OPT_FIELD_EXT_SERVICES) {
+                return -1;
+            }
+            return (tms->last_sid.ext_service >> 19) & 0x1;
+        }
+        int getCellSecurityClass1SupportedOnCell() {
+            if (!hasCellSysInfo() || tms->last_sid.option_field != TETRA_MAC_OPT_FIELD_EXT_SERVICES) {
+                return -1;
+            }
+            return (tms->last_sid.ext_service >> 18) & 0x1;
+        }
+        int getCellSecurityClass3SupportedOnCell() {
+            if (!hasCellSysInfo() || tms->last_sid.option_field != TETRA_MAC_OPT_FIELD_EXT_SERVICES) {
+                return -1;
+            }
+            return (tms->last_sid.ext_service >> 17) & 0x1;
         }
         int getCallId() {
             return tms->t_display_st->call_id;
