@@ -306,7 +306,9 @@ private:
             ImGui::Text("| MNC: ");ImGui::SameLine();
             ImGui::TextColored(ImVec4(0.95, 0.95, 0.05, 1.0), "%03d", _this->osmotetradecoder.getMnc());ImGui::SameLine();
             ImGui::Text("| CC: ");ImGui::SameLine();
-            ImGui::TextColored(ImVec4(0.95, 0.95, 0.05, 1.0), "0x%02x", _this->osmotetradecoder.getCc());
+            ImGui::TextColored(ImVec4(0.95, 0.95, 0.05, 1.0), "0x%02x", _this->osmotetradecoder.getCc());ImGui::SameLine();
+            ImGui::Text("| LA: ");ImGui::SameLine();
+            ImGui::TextColored(ImVec4(0.95, 0.95, 0.05, 1.0), "%05d", _this->osmotetradecoder.getLa());
             ImVec4 on_color = ImVec4(0.05, 0.95, 0.05, 1.0);
             ImVec4 off_color = ImVec4(0.95, 0.05, 0.05, 1.0);
             ImGui::TextColored(_this->osmotetradecoder.getAdvancedLink() ? on_color : off_color, "Adv. link  ");ImGui::SameLine();

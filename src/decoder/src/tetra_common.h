@@ -281,6 +281,7 @@ struct tetra_display_state {
 	int mcc;//
 	int mnc;//
 	int cc;//
+	int la;//
 	bool last_crc_fail;//
 	bool advanced_link;
 	bool air_encryption;

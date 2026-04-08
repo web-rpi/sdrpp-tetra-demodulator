@@ -159,6 +159,7 @@ static int rx_bcast(struct tetra_tmvsap_prim *tmvp, struct tetra_mac_state *tms)
 	memcpy(&tms->last_sid, &sid, sizeof(sid));
 
 	/* Update crypto state */
+	tms->t_display_st->la = sid.mle_si.la;
 	tcs->la = sid.mle_si.la;
 	tcs->cn = sid.main_carrier; /* FIXME this won't work when not tuned to the main carier */
 	if (sid.cck_valid_no_hf) {
