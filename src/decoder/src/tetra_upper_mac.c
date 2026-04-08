@@ -202,6 +202,49 @@ const char *tetra_alloc_dump(const struct tetra_chan_alloc_decoded *cad, struct 
 	return buf;
 }
 
+static void tetra_set_call_party_if_possible(int *slot, int ssi)
+{
+	if (*slot < 0 || *slot == ssi) {
+		*slot = ssi;
+	}
+}
+
+static void tetra_update_call_parties(struct tetra_display_state *tds, uint8_t ul_dl, uint32_t ssi)
+{
+	int call_ssi;
+
+	if (!tds || !tetra_ssi_is_valid(ssi))
+		return;
+
+	call_ssi = (int)ssi;
+
+	if (tds->call_to_ssi == call_ssi || tds->call_from_ssi == call_ssi)
+		return;
+
+	switch (ul_dl) {
+	case 1:
+		tetra_set_call_party_if_possible(&tds->call_to_ssi, call_ssi);
+		break;
+	case 2:
+		tetra_set_call_party_if_possible(&tds->call_from_ssi, call_ssi);
+		break;
+	case 3:
+		if (tds->call_to_ssi < 0) {
+			tds->call_to_ssi = call_ssi;
+		} else if (tds->call_from_ssi < 0) {
+			tds->call_from_ssi = call_ssi;
+		}
+		break;
+	default:
+		if (tds->call_to_ssi < 0) {
+			tds->call_to_ssi = call_ssi;
+		} else if (tds->call_from_ssi < 0) {
+			tds->call_from_ssi = call_ssi;
+		}
+		break;
+	}
+}
+
 static int rx_resrc(struct tetra_tmvsap_prim *tmvp, struct tetra_mac_state *tms)
 {
 	struct msgb *msg = tmvp->oph.msg;
@@ -280,6 +323,8 @@ static int rx_resrc(struct tetra_tmvsap_prim *tmvp, struct tetra_mac_state *tms)
 		int candidate_call_timeslot = rsd.cad.timeslot;
 		int candidate_call_carrier = rsd.cad.carrier_nr;
 		int reset_call_parties = 0;
+		int same_call_slot = (candidate_call_carrier == tms->t_display_st->call_carrier &&
+				      candidate_call_timeslot == tms->t_display_st->call_timeslot);
 
 		if (rsd.addr.type == ADDR_TYPE_EVENT_LABEL ||
 		    rsd.addr.type == ADDR_TYPE_SSI_EVENT ||
@@ -287,6 +332,13 @@ static int rx_resrc(struct tetra_tmvsap_prim *tmvp, struct tetra_mac_state *tms)
 			candidate_call_id = rsd.addr.event_label;
 		} else if (rsd.addr.type == ADDR_TYPE_SSI_USAGE) {
 			candidate_call_id = rsd.addr.usage_marker;
+		}
+
+		if (rsd.cad.type == TMAC_ALLOC_T_QUIT_GO) {
+			if (same_call_slot || tms->t_display_st->call_timeslot < 0) {
+				tetra_reset_call_info_state(tms);
+			}
+			goto call_info_done;
 		}
 
 		if (tms->t_display_st->call_carrier >= 0 &&
@@ -309,7 +361,6 @@ static int rx_resrc(struct tetra_tmvsap_prim *tmvp, struct tetra_mac_state *tms)
 		tms->t_display_st->call_encrypted = rsd.encryption_mode > 0 ? 1 : 0;
 		tms->t_display_st->call_timeslot = candidate_call_timeslot;
 		tms->t_display_st->call_carrier = candidate_call_carrier;
-		tms->call_idle_bursts = 0;
 		if (rsd.chan_alloc_pres && rsd.cad.ext_carr_pres) {
 			int ext_duplex_khz = tetra_get_duplex_spacing_khz(rsd.cad.ext_carr.freq_band, rsd.cad.ext_carr.duplex_spc);
 			if (ext_duplex_khz >= 0) {
@@ -317,16 +368,10 @@ static int rx_resrc(struct tetra_tmvsap_prim *tmvp, struct tetra_mac_state *tms)
 			}
 		}
 
-		if (tetra_ssi_is_valid(rsd.addr.ssi)) {
-			if (rsd.cad.ul_dl == 2 || rsd.cad.ul_dl == 3) {
-				tms->t_display_st->call_from_ssi = rsd.addr.ssi;
-			} else {
-				if (tms->t_display_st->call_to_ssi < 0) {
-					tms->t_display_st->call_to_ssi = rsd.addr.ssi;
-				}
-			}
-		}
+		tetra_update_call_parties(tms->t_display_st, rsd.cad.ul_dl, rsd.addr.ssi);
+		tetra_note_call_info_activity(tms);
 	}
+call_info_done:
 
 	if (msgb_l2len(msg) == 0)
 		goto out; /* No l2 data */

@@ -61,7 +61,7 @@ namespace dsp {
             memset(tms->tcs, 0, sizeof(struct tetra_crypto_state));
             tms->t_display_st = (struct tetra_display_state*)malloc(sizeof(struct tetra_display_state));
             memset(tms->t_display_st, 0, sizeof(struct tetra_display_state));
-            tetra_reset_call_info(tms->t_display_st);
+            tetra_reset_call_info_state(tms);
             tetra_crypto_state_init(tms->tcs);
             trs = (struct tetra_rx_state*)malloc(sizeof(struct tetra_rx_state));
             memset(trs, 0, sizeof(struct tetra_rx_state));
@@ -76,8 +76,6 @@ namespace dsp {
 
             tms->put_voice_data = put_voice_data;
             tms->put_voice_data_ctx = this;
-            tms->last_frame = 0;
-            tms->curr_active_timeslot = 0;
             for (int i = 0; i < 4; i++) {
                 tms->audio_timeslot_enabled[i] = true;
             }

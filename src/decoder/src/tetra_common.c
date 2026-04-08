@@ -222,7 +222,12 @@ void tetra_mac_state_init(struct tetra_mac_state *tms)
 {
 	// INIT_LLIST_HEAD(&tms->voice_channels);
 	tms->codec_first_pass = true;
-	tms->call_idle_bursts = 0;
+	tms->last_multiframe = -1;
+	tms->last_frame = -1;
+	tms->curr_active_timeslot = 0;
+	tms->call_idle_frames = 0;
+	tms->call_age_multiframe = -1;
+	tms->call_age_frame = -1;
 }
 
 void tetra_reset_call_info(struct tetra_display_state *tds)
@@ -238,4 +243,18 @@ void tetra_reset_call_info(struct tetra_display_state *tds)
 	tds->call_timeslot = -1;
 	tds->call_encrypted = -1;
 	tds->call_duplex_khz = -1;
+}
+
+void tetra_reset_call_info_state(struct tetra_mac_state *tms)
+{
+	if (!tms)
+		return;
+
+	tetra_reset_call_info(tms->t_display_st);
+	tms->curr_active_timeslot = 0;
+	tms->last_multiframe = -1;
+	tms->last_frame = -1;
+	tms->call_idle_frames = 0;
+	tms->call_age_multiframe = -1;
+	tms->call_age_frame = -1;
 }

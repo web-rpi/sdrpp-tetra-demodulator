@@ -60,29 +60,28 @@ static void flush_audio_mix(struct tetra_mac_state *tms)
 	tms->put_voice_data(tms->put_voice_data_ctx, 480, synth);
 }
 
-static void age_call_info(struct tetra_mac_state *tms, enum tetra_train_seq type)
+static void age_call_info(struct tetra_mac_state *tms)
 {
-	int tracked_slot = tms->t_display_st->call_timeslot;
-
-	if (tracked_slot < 1 || tracked_slot > 4)
+	if (tms->t_display_st->call_timeslot < 1 || tms->t_display_st->call_timeslot > 4)
 		return;
-	if (t_phy_state.time.tn != tracked_slot)
-		return;
-	if (type != TETRA_TRAIN_NORM_1)
+	if (tms->call_age_multiframe == t_phy_state.time.mn &&
+	    tms->call_age_frame == t_phy_state.time.fn)
 		return;
 
-	if (tms->t_display_st->timeslot_content[tracked_slot - 1] == 4) {
-		tms->call_idle_bursts = 0;
+	tms->call_age_multiframe = t_phy_state.time.mn;
+	tms->call_age_frame = t_phy_state.time.fn;
+
+	if (tms->last_multiframe == t_phy_state.time.mn &&
+	    tms->last_frame == t_phy_state.time.fn) {
+		tms->call_idle_frames = 0;
 		return;
 	}
 
-	if (tms->call_idle_bursts < TETRA_CALL_INFO_IDLE_RESET_BURSTS)
-		tms->call_idle_bursts++;
+	if (tms->call_idle_frames < TETRA_CALL_INFO_IDLE_RESET_FRAMES)
+		tms->call_idle_frames++;
 
-	if (tms->call_idle_bursts >= TETRA_CALL_INFO_IDLE_RESET_BURSTS) {
-		tetra_reset_call_info(tms->t_display_st);
-		tms->call_idle_bursts = 0;
-	}
+	if (tms->call_idle_frames >= TETRA_CALL_INFO_IDLE_RESET_FRAMES)
+		tetra_reset_call_info_state(tms);
 }
 
 #define NDB_BLK1_OFFSET ((5+1+1)*DQPSK4_BITS_PER_SYM)
@@ -444,5 +443,5 @@ void tetra_burst_rx_cb(const uint8_t *burst, unsigned int len, enum tetra_train_
 		break;
 	}
 
-	age_call_info(tms, type);
+	age_call_info(tms);
 }

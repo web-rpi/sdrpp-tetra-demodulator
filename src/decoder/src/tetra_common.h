@@ -237,7 +237,7 @@ struct osmo_prim_hdr {
 #define TETRA_SYM_PER_TS	255
 #define TETRA_BITS_PER_TS	(TETRA_SYM_PER_TS*2)
 #define TETRA_INVALID_SSI	0xFFFFFFU
-#define TETRA_CALL_INFO_IDLE_RESET_BURSTS 32
+#define TETRA_CALL_INFO_IDLE_RESET_FRAMES 40
 
 /* Chapter 22.2.x */
 enum tetra_log_chan {
@@ -328,9 +328,12 @@ struct tetra_mac_state {
 	
 	void (*put_voice_data)(void* ctx, int count, int16_t* data);
 	void* put_voice_data_ctx;
+	int last_multiframe;
 	int last_frame;
 	int curr_active_timeslot;
-	int call_idle_bursts;
+	int call_idle_frames;
+	int call_age_multiframe;
+	int call_age_frame;
 	bool audio_timeslot_enabled[4];
 	bool audio_mix_has_data;
 	int audio_mix_multiframe;
@@ -345,10 +348,21 @@ extern struct tetra_display_state t_display_state;
 
 void tetra_mac_state_init(struct tetra_mac_state *tms);
 void tetra_reset_call_info(struct tetra_display_state *tds);
+void tetra_reset_call_info_state(struct tetra_mac_state *tms);
 
 static inline bool tetra_ssi_is_valid(uint32_t ssi)
 {
 	return ssi > 0 && ssi < TETRA_INVALID_SSI;
+}
+
+static inline void tetra_note_call_info_activity(struct tetra_mac_state *tms)
+{
+	if (!tms || !tms->t_display_st)
+		return;
+
+	tms->call_idle_frames = 0;
+	tms->last_multiframe = tms->t_display_st->curr_multiframe;
+	tms->last_frame = tms->t_display_st->curr_frame;
 }
 
 #define TETRA_CRC_OK	0x1d0f
