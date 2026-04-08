@@ -77,6 +77,14 @@ namespace dsp {
             tms->put_voice_data_ctx = this;
             tms->last_frame = 0;
             tms->curr_active_timeslot = 0;
+            for (int i = 0; i < 4; i++) {
+                tms->audio_timeslot_enabled[i] = true;
+            }
+            tms->audio_mix_has_data = false;
+            tms->audio_mix_multiframe = 0;
+            tms->audio_mix_frame = 0;
+            tms->audio_mix_sources = 0;
+            memset(tms->audio_mix_accum, 0, sizeof(tms->audio_mix_accum));
 
             Init_Decod_Tetra();
 
@@ -108,6 +116,12 @@ namespace dsp {
         }
         int getTimeslotContent(int ts) { //0-other, 1-NORM1, 2-NORM2, 3-SYNC, 4-VOICE
             return tms->t_display_st->timeslot_content[ts];
+        }
+        bool getAudioTimeslotEnabled(int ts) {
+            return tms->audio_timeslot_enabled[ts];
+        }
+        void setAudioTimeslotEnabled(int ts, bool enabled) {
+            tms->audio_timeslot_enabled[ts] = enabled;
         }
         int getDlUsage() {
             return tms->t_display_st->dl_usage;
@@ -192,7 +206,13 @@ namespace dsp {
             inSymsCtr += count;
             int requiredOut = inSymsCtr * 8 / 36;
             int remainingOut = requiredOut - outSymsCtr;
-            bool decoding = (tms->t_display_st->timeslot_content[0] == 4) | (tms->t_display_st->timeslot_content[1] == 4) | (tms->t_display_st->timeslot_content[2] == 4) | (tms->t_display_st->timeslot_content[3] == 4);
+            bool decoding = false;
+            for (int i = 0; i < 4; i++) {
+                if (tms->audio_timeslot_enabled[i] && tms->t_display_st->timeslot_content[i] == 4) {
+                    decoding = true;
+                    break;
+                }
+            }
             if(remainingOut > 0 && !decoding) {
                 memset(&(out[outcnt]), 0, remainingOut*sizeof(float));
                 outcnt += remainingOut;

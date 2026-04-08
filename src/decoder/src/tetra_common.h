@@ -320,6 +320,12 @@ struct tetra_mac_state {
 	void* put_voice_data_ctx;
 	int last_frame;
 	int curr_active_timeslot;
+	bool audio_timeslot_enabled[4];
+	bool audio_mix_has_data;
+	int audio_mix_multiframe;
+	int audio_mix_frame;
+	int audio_mix_sources;
+	int32_t audio_mix_accum[480];
 	
 	struct fragslot* fragslots;
 };

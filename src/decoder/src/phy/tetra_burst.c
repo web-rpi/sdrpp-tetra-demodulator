@@ -21,6 +21,7 @@
 
 
 #include <stdint.h>
+#include <limits.h>
 #include <string.h>
 #include <stdio.h>
 
@@ -37,6 +38,27 @@
 #define SB_BLK1_BITS	(60*DQPSK4_BITS_PER_SYM)
 #define SB_BBK_BITS	(15*DQPSK4_BITS_PER_SYM)
 #define SB_BLK2_BITS	(108*DQPSK4_BITS_PER_SYM)
+
+static void flush_audio_mix(struct tetra_mac_state *tms)
+{
+	if (!tms->audio_mix_has_data || tms->audio_mix_sources <= 0)
+		return;
+
+	int16_t synth[480];
+	for (int i = 0; i < 480; i++) {
+		int32_t sample = tms->audio_mix_accum[i] / tms->audio_mix_sources;
+		if (sample > INT16_MAX)
+			sample = INT16_MAX;
+		else if (sample < INT16_MIN)
+			sample = INT16_MIN;
+		synth[i] = (int16_t)sample;
+		tms->audio_mix_accum[i] = 0;
+	}
+
+	tms->audio_mix_has_data = false;
+	tms->audio_mix_sources = 0;
+	tms->put_voice_data(tms->put_voice_data_ctx, 480, synth);
+}
 
 #define NDB_BLK1_OFFSET ((5+1+1)*DQPSK4_BITS_PER_SYM)
 #define NDB_BBK1_OFFSET	((5+1+1+108)*DQPSK4_BITS_PER_SYM)
@@ -345,6 +367,12 @@ void tetra_burst_rx_cb(const uint8_t *burst, unsigned int len, enum tetra_train_
 	uint8_t bbk_buf[NDB_BBK_BITS];
 	uint8_t ndbf_buf[2*NDB_BLK_BITS];
 	struct tetra_mac_state *tms = priv;
+
+	if (tms->audio_mix_has_data &&
+		(tms->audio_mix_multiframe != t_phy_state.time.mn ||
+		 tms->audio_mix_frame != t_phy_state.time.fn)) {
+		flush_audio_mix(tms);
+	}
 	
 	tms->t_display_st->curr_multiframe = t_phy_state.time.mn;
 	tms->t_display_st->curr_frame = t_phy_state.time.fn;

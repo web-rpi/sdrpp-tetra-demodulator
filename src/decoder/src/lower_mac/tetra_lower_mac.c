@@ -361,13 +361,19 @@ void tp_sap_udata_ind(enum tp_sap_data_type type, int blk_num, const uint8_t *bi
 			Bits2prm_Tetra(serial, parm);	/* serial to parameters */
 			Decod_Tetra(parm, synth_p2);		/* decoder */
 			Post_Process(synth_p2, (int16_t)240);	/* Post processing of synthesis  */
-			//USE SYNTH
-			if(tms->t_display_st->curr_frame != tms->last_frame) {
+			if (tms->audio_timeslot_enabled[t_phy_state.time.tn - 1]) {
 				tms->curr_active_timeslot = t_phy_state.time.tn;
 				tms->last_frame = tms->t_display_st->curr_frame;
-			}
-			if(tms->curr_active_timeslot == t_phy_state.time.tn) {
-				tms->put_voice_data(tms->put_voice_data_ctx, 480, synth);
+				if (!tms->audio_mix_has_data) {
+					memset(tms->audio_mix_accum, 0, sizeof(tms->audio_mix_accum));
+					tms->audio_mix_multiframe = tms->t_display_st->curr_multiframe;
+					tms->audio_mix_frame = tms->t_display_st->curr_frame;
+				}
+				for (int i = 0; i < 480; i++) {
+					tms->audio_mix_accum[i] += synth[i];
+				}
+				tms->audio_mix_sources++;
+				tms->audio_mix_has_data = true;
 			}
 		}
 		break;

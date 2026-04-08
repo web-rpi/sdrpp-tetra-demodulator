@@ -65,11 +65,17 @@ public:
             config.conf[name]["hostname"] = "localhost";
             config.conf[name]["port"] = 8355;
             config.conf[name]["sending"] = false;
+            config.conf[name]["audio_timeslots"] = json::array({ true, true, true, true });
+        } else if (!config.conf[name].contains("audio_timeslots") || !config.conf[name]["audio_timeslots"].is_array() || config.conf[name]["audio_timeslots"].size() != 4) {
+            config.conf[name]["audio_timeslots"] = json::array({ true, true, true, true });
         }
         decoder_mode = config.conf[name]["mode"];
         strcpy(hostname, std::string(config.conf[name]["hostname"]).c_str());
         port = config.conf[name]["port"];
         bool startNow = config.conf[name]["sending"];
+        for (int i = 0; i < 4; i++) {
+            audioTimeslotEnabled[i] = config.conf[name]["audio_timeslots"][i];
+        }
         config.release(true);
 
         vfo = sigpath::vfoManager.createVFO(name, ImGui::WaterfallVFO::REF_CENTER, 0, VFO_BANDWIDTH, VFO_SAMPLERATE, VFO_BANDWIDTH, VFO_BANDWIDTH, true);
@@ -93,6 +99,9 @@ public:
         demodSink.init(&bitsUnpacker.out, _demodSinkHandler, this);
 
         osmotetradecoder.init(&bitsUnpacker.out);
+        for (int i = 0; i < 4; i++) {
+            osmotetradecoder.setAudioTimeslotEnabled(i, audioTimeslotEnabled[i]);
+        }
         resamp.init(&osmotetradecoder.out, 8000.0, audioSampleRate);
         outconv.init(&resamp.out);
 
@@ -268,6 +277,16 @@ private:
                         ImGui::SameLine();
                         ImGui::TextColored(ImVec4(0.05, 0.95, 0.05, 1.0), " VOICE ");
                         break;
+                }
+            }
+            ImGui::Text("Audio Sink TS:");
+            for (int i = 0; i < 4; i++) {
+                ImGui::SameLine();
+                if (ImGui::Checkbox(CONCAT(("TS" + std::to_string(i + 1) + "##_tetrademod_audio_ts_").c_str(), _this->name), &(_this->audioTimeslotEnabled[i]))) {
+                    _this->osmotetradecoder.setAudioTimeslotEnabled(i, _this->audioTimeslotEnabled[i]);
+                    config.acquire();
+                    config.conf[_this->name]["audio_timeslots"][i] = _this->audioTimeslotEnabled[i];
+                    config.release(true);
                 }
             }
             int crc_failed = _this->osmotetradecoder.getLastCrcFail();
@@ -474,6 +493,7 @@ private:
 
     char hostname[1024];
     int port = 8355;
+    bool audioTimeslotEnabled[4] = { true, true, true, true };
 
     std::shared_ptr<net::Socket> conn;
 
