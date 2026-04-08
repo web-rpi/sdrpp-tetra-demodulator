@@ -109,6 +109,9 @@ static int rx_bcast(struct tetra_tmvsap_prim *tmvp, struct tetra_mac_state *tms)
 		// dl_freq, ul_freq, sid.mle_si.bs_service_details);
 	tms->t_display_st->dl_freq = dl_freq;
 	tms->t_display_st->ul_freq = ul_freq;
+	if (dl_freq > 0 && ul_freq > 0) {
+		tms->t_display_st->call_duplex_khz = (int)(labs((long)ul_freq - (long)dl_freq) / 1000);
+	}
 	if (sid.cck_valid_no_hf) {
 		// printf("CCK ID %u", sid.cck_id);
 	} else {
@@ -157,7 +160,9 @@ static int rx_bcast(struct tetra_tmvsap_prim *tmvp, struct tetra_mac_state *tms)
 	}
 
 	memcpy(&tms->last_sid, &sid, sizeof(sid));
-	tms->t_display_st->call_duplex_khz = tetra_get_duplex_spacing_khz(sid.freq_band, sid.duplex_spacing);
+	if (tms->t_display_st->call_duplex_khz < 0) {
+		tms->t_display_st->call_duplex_khz = tetra_get_duplex_spacing_khz(sid.freq_band, sid.duplex_spacing);
+	}
 
 	/* Update crypto state */
 	tms->t_display_st->la = sid.mle_si.la;
@@ -270,27 +275,61 @@ static int rx_resrc(struct tetra_tmvsap_prim *tmvp, struct tetra_mac_state *tms)
 	tms->ssi = rsd.addr.ssi;
 	tms->usage_marker = rsd.addr.usage_marker;
 	tms->addr_type = rsd.addr.type;
-	tms->t_display_st->call_id = -1;
-	if (rsd.addr.type == ADDR_TYPE_EVENT_LABEL ||
-	    rsd.addr.type == ADDR_TYPE_SSI_EVENT ||
-	    rsd.addr.type == ADDR_TYPE_SMI_EVENT) {
-		tms->t_display_st->call_id = rsd.addr.event_label;
-	}
-	tms->t_display_st->call_type = rsd.chan_alloc_pres ? rsd.cad.type : -1;
-	tms->t_display_st->call_encrypted = rsd.encryption_mode > 0 ? 1 : 0;
-	tms->t_display_st->call_timeslot = rsd.chan_alloc_pres ? rsd.cad.timeslot : tmvp->u.unitdata.tdma_time.tn;
-	tms->t_display_st->call_carrier = rsd.chan_alloc_pres ? rsd.cad.carrier_nr : tms->last_sid.main_carrier;
-	if (rsd.chan_alloc_pres) {
-		if (rsd.cad.ext_carr_pres) {
-			tms->t_display_st->call_duplex_khz = tetra_get_duplex_spacing_khz(rsd.cad.ext_carr.freq_band, rsd.cad.ext_carr.duplex_spc);
+	{
+		int candidate_call_id = -1;
+		int candidate_call_timeslot = rsd.chan_alloc_pres ? rsd.cad.timeslot : tmvp->u.unitdata.tdma_time.tn;
+		int candidate_call_carrier = rsd.chan_alloc_pres ? rsd.cad.carrier_nr : tms->last_sid.main_carrier;
+		int reset_call_parties = 0;
+
+		if (rsd.addr.type == ADDR_TYPE_EVENT_LABEL ||
+		    rsd.addr.type == ADDR_TYPE_SSI_EVENT ||
+		    rsd.addr.type == ADDR_TYPE_SMI_EVENT) {
+			candidate_call_id = rsd.addr.event_label;
+		} else if (rsd.addr.type == ADDR_TYPE_SSI_USAGE) {
+			candidate_call_id = rsd.addr.usage_marker;
 		}
-	}
-	if (rsd.chan_alloc_pres && rsd.cad.ul_dl == 2) {
-		tms->t_display_st->call_from_ssi = rsd.addr.ssi;
-		tms->t_display_st->call_to_ssi = -1;
-	} else {
-		tms->t_display_st->call_from_ssi = -1;
-		tms->t_display_st->call_to_ssi = rsd.addr.ssi;
+
+		if (candidate_call_id >= 0 && tms->t_display_st->call_id >= 0 &&
+		    candidate_call_id != tms->t_display_st->call_id) {
+			reset_call_parties = 1;
+		} else if (candidate_call_id < 0 &&
+			   tms->t_display_st->call_id < 0 &&
+			   tms->t_display_st->call_carrier >= 0 &&
+			   tms->t_display_st->call_timeslot > 0 &&
+			   (candidate_call_carrier != tms->t_display_st->call_carrier ||
+			    candidate_call_timeslot != tms->t_display_st->call_timeslot)) {
+			reset_call_parties = 1;
+		}
+
+		if (reset_call_parties) {
+			tms->t_display_st->call_from_ssi = -1;
+			tms->t_display_st->call_to_ssi = -1;
+		}
+
+		tms->t_display_st->call_id = candidate_call_id;
+		tms->t_display_st->call_type = rsd.chan_alloc_pres ? rsd.cad.type : -1;
+		tms->t_display_st->call_encrypted = rsd.encryption_mode > 0 ? 1 : 0;
+		tms->t_display_st->call_timeslot = candidate_call_timeslot;
+		tms->t_display_st->call_carrier = candidate_call_carrier;
+		if (rsd.chan_alloc_pres && rsd.cad.ext_carr_pres) {
+			int ext_duplex_khz = tetra_get_duplex_spacing_khz(rsd.cad.ext_carr.freq_band, rsd.cad.ext_carr.duplex_spc);
+			if (ext_duplex_khz >= 0) {
+				tms->t_display_st->call_duplex_khz = ext_duplex_khz;
+			}
+		}
+
+		if (rsd.addr.ssi > 0) {
+			if (rsd.chan_alloc_pres && (rsd.cad.ul_dl == 2 || rsd.cad.ul_dl == 3)) {
+				tms->t_display_st->call_from_ssi = rsd.addr.ssi;
+			} else {
+				if (tms->t_display_st->call_to_ssi < 0) {
+					tms->t_display_st->call_to_ssi = rsd.addr.ssi;
+				} else if (tms->t_display_st->call_to_ssi != rsd.addr.ssi &&
+					   tms->t_display_st->call_from_ssi < 0) {
+					tms->t_display_st->call_from_ssi = rsd.addr.ssi;
+				}
+			}
+		}
 	}
 
 	if (msgb_l2len(msg) == 0)
