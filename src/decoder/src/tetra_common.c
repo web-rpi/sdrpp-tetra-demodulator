@@ -222,4 +222,20 @@ void tetra_mac_state_init(struct tetra_mac_state *tms)
 {
 	// INIT_LLIST_HEAD(&tms->voice_channels);
 	tms->codec_first_pass = true;
+	tms->call_idle_bursts = 0;
+}
+
+void tetra_reset_call_info(struct tetra_display_state *tds)
+{
+	if (!tds)
+		return;
+
+	tds->call_id = -1;
+	tds->call_type = -1;
+	tds->call_from_ssi = -1;
+	tds->call_to_ssi = -1;
+	tds->call_carrier = -1;
+	tds->call_timeslot = -1;
+	tds->call_encrypted = -1;
+	tds->call_duplex_khz = -1;
 }

@@ -61,14 +61,7 @@ namespace dsp {
             memset(tms->tcs, 0, sizeof(struct tetra_crypto_state));
             tms->t_display_st = (struct tetra_display_state*)malloc(sizeof(struct tetra_display_state));
             memset(tms->t_display_st, 0, sizeof(struct tetra_display_state));
-            tms->t_display_st->call_id = -1;
-            tms->t_display_st->call_type = -1;
-            tms->t_display_st->call_from_ssi = -1;
-            tms->t_display_st->call_to_ssi = -1;
-            tms->t_display_st->call_carrier = -1;
-            tms->t_display_st->call_timeslot = -1;
-            tms->t_display_st->call_encrypted = -1;
-            tms->t_display_st->call_duplex_khz = -1;
+            tetra_reset_call_info(tms->t_display_st);
             tetra_crypto_state_init(tms->tcs);
             trs = (struct tetra_rx_state*)malloc(sizeof(struct tetra_rx_state));
             memset(trs, 0, sizeof(struct tetra_rx_state));
@@ -178,10 +171,12 @@ namespace dsp {
             return name ? name : "n/a";
         }
         int getCallFromSsi() {
-            return tms->t_display_st->call_from_ssi;
+            int ssi = tms->t_display_st->call_from_ssi;
+            return tetra_ssi_is_valid((uint32_t)ssi) ? ssi : -1;
         }
         int getCallToSsi() {
-            return tms->t_display_st->call_to_ssi;
+            int ssi = tms->t_display_st->call_to_ssi;
+            return tetra_ssi_is_valid((uint32_t)ssi) ? ssi : -1;
         }
         int getCallCarrier() {
             return tms->t_display_st->call_carrier;

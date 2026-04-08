@@ -236,6 +236,8 @@ struct osmo_prim_hdr {
 
 #define TETRA_SYM_PER_TS	255
 #define TETRA_BITS_PER_TS	(TETRA_SYM_PER_TS*2)
+#define TETRA_INVALID_SSI	0xFFFFFFU
+#define TETRA_CALL_INFO_IDLE_RESET_BURSTS 8
 
 /* Chapter 22.2.x */
 enum tetra_log_chan {
@@ -328,6 +330,7 @@ struct tetra_mac_state {
 	void* put_voice_data_ctx;
 	int last_frame;
 	int curr_active_timeslot;
+	int call_idle_bursts;
 	bool audio_timeslot_enabled[4];
 	bool audio_mix_has_data;
 	int audio_mix_multiframe;
@@ -341,6 +344,12 @@ struct tetra_mac_state {
 extern struct tetra_display_state t_display_state;
 
 void tetra_mac_state_init(struct tetra_mac_state *tms);
+void tetra_reset_call_info(struct tetra_display_state *tds);
+
+static inline bool tetra_ssi_is_valid(uint32_t ssi)
+{
+	return ssi > 0 && ssi < TETRA_INVALID_SSI;
+}
 
 #define TETRA_CRC_OK	0x1d0f
 
