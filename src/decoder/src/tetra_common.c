@@ -173,6 +173,16 @@ uint32_t tetra_ul_carrier_hz(uint8_t band, uint16_t carrier, uint8_t offset,
 	return freq;
 }
 
+int32_t tetra_get_duplex_spacing_khz(uint8_t band, uint8_t duplex)
+{
+	int32_t duplex_spacing = tetra_duplex_spacing[duplex & 7][band & 15];
+
+	if (duplex_spacing < 0)
+		return -1;
+
+	return duplex_spacing;
+}
+
 static const struct value_string tetra_sap_names[] = {
 	{ TETRA_SAP_TP,		"TP-SAP" },
 	{ TETRA_SAP_TMV,	"TMV-SAP" },

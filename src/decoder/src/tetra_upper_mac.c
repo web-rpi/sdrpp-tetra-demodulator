@@ -157,6 +157,7 @@ static int rx_bcast(struct tetra_tmvsap_prim *tmvp, struct tetra_mac_state *tms)
 	}
 
 	memcpy(&tms->last_sid, &sid, sizeof(sid));
+	tms->t_display_st->call_duplex_khz = tetra_get_duplex_spacing_khz(sid.freq_band, sid.duplex_spacing);
 
 	/* Update crypto state */
 	tms->t_display_st->la = sid.mle_si.la;
@@ -269,6 +270,28 @@ static int rx_resrc(struct tetra_tmvsap_prim *tmvp, struct tetra_mac_state *tms)
 	tms->ssi = rsd.addr.ssi;
 	tms->usage_marker = rsd.addr.usage_marker;
 	tms->addr_type = rsd.addr.type;
+	tms->t_display_st->call_id = -1;
+	if (rsd.addr.type == ADDR_TYPE_EVENT_LABEL ||
+	    rsd.addr.type == ADDR_TYPE_SSI_EVENT ||
+	    rsd.addr.type == ADDR_TYPE_SMI_EVENT) {
+		tms->t_display_st->call_id = rsd.addr.event_label;
+	}
+	tms->t_display_st->call_type = rsd.chan_alloc_pres ? rsd.cad.type : -1;
+	tms->t_display_st->call_encrypted = rsd.encryption_mode > 0 ? 1 : 0;
+	tms->t_display_st->call_timeslot = rsd.chan_alloc_pres ? rsd.cad.timeslot : tmvp->u.unitdata.tdma_time.tn;
+	tms->t_display_st->call_carrier = rsd.chan_alloc_pres ? rsd.cad.carrier_nr : tms->last_sid.main_carrier;
+	if (rsd.chan_alloc_pres) {
+		if (rsd.cad.ext_carr_pres) {
+			tms->t_display_st->call_duplex_khz = tetra_get_duplex_spacing_khz(rsd.cad.ext_carr.freq_band, rsd.cad.ext_carr.duplex_spc);
+		}
+	}
+	if (rsd.chan_alloc_pres && rsd.cad.ul_dl == 2) {
+		tms->t_display_st->call_from_ssi = rsd.addr.ssi;
+		tms->t_display_st->call_to_ssi = -1;
+	} else {
+		tms->t_display_st->call_from_ssi = -1;
+		tms->t_display_st->call_to_ssi = rsd.addr.ssi;
+	}
 
 	if (msgb_l2len(msg) == 0)
 		goto out; /* No l2 data */

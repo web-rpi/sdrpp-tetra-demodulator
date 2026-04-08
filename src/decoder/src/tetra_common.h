@@ -282,6 +282,14 @@ struct tetra_display_state {
 	int mnc;//
 	int cc;//
 	int la;//
+	int call_id;//
+	int call_type;//
+	int call_from_ssi;//
+	int call_to_ssi;//
+	int call_carrier;//
+	int call_timeslot;//
+	int call_encrypted;//
+	int call_duplex_khz;//
 	bool last_crc_fail;//
 	bool advanced_link;
 	bool air_encryption;
@@ -339,6 +347,7 @@ void tetra_mac_state_init(struct tetra_mac_state *tms);
 uint32_t tetra_dl_carrier_hz(uint8_t band, uint16_t carrier, uint8_t offset);
 uint32_t tetra_ul_carrier_hz(uint8_t band, uint16_t carrier, uint8_t offset,
 			     uint8_t duplex, uint8_t reverse);
+int32_t tetra_get_duplex_spacing_khz(uint8_t band, uint8_t duplex);
 
 const char *tetra_get_lchan_name(enum tetra_log_chan lchan);
 const char *tetra_get_sap_name(uint8_t sap);
