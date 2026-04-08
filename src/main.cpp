@@ -335,7 +335,7 @@ private:
                 if (duplex_table >= 0) { ImGui::TextColored(ImVec4(0.95, 0.95, 0.05, 1.0), "%d", duplex_table); }
                 else { ImGui::TextColored(ImVec4(0.8, 0.8, 0.8, 1.0), "n/a"); }
                 ImGui::Text("Duplex Spacing:"); ImGui::SameLine();
-                if (duplex_spacing_khz >= 0) { ImGui::TextColored(ImVec4(0.95, 0.95, 0.05, 1.0), "%d kHz", duplex_spacing_khz); }
+                if (duplex_spacing_khz >= 0) { ImGui::TextColored(ImVec4(0.95, 0.95, 0.05, 1.0), "%.3f MHz", duplex_spacing_khz / 1000.0f); }
                 else { ImGui::TextColored(ImVec4(0.8, 0.8, 0.8, 1.0), "n/a"); }
                 ImVec4 on_color = ImVec4(0.05, 0.95, 0.05, 1.0);
                 ImVec4 off_color = ImVec4(0.95, 0.05, 0.05, 1.0);
