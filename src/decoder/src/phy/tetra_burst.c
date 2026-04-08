@@ -60,13 +60,15 @@ static void flush_audio_mix(struct tetra_mac_state *tms)
 	tms->put_voice_data(tms->put_voice_data_ctx, 480, synth);
 }
 
-static void age_call_info(struct tetra_mac_state *tms)
+static void age_call_info(struct tetra_mac_state *tms, enum tetra_train_seq type)
 {
 	int tracked_slot = tms->t_display_st->call_timeslot;
 
 	if (tracked_slot < 1 || tracked_slot > 4)
 		return;
 	if (t_phy_state.time.tn != tracked_slot)
+		return;
+	if (type != TETRA_TRAIN_NORM_1)
 		return;
 
 	if (tms->t_display_st->timeslot_content[tracked_slot - 1] == 4) {
@@ -442,5 +444,5 @@ void tetra_burst_rx_cb(const uint8_t *burst, unsigned int len, enum tetra_train_
 		break;
 	}
 
-	age_call_info(tms);
+	age_call_info(tms, type);
 }

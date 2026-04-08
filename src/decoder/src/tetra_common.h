@@ -237,7 +237,7 @@ struct osmo_prim_hdr {
 #define TETRA_SYM_PER_TS	255
 #define TETRA_BITS_PER_TS	(TETRA_SYM_PER_TS*2)
 #define TETRA_INVALID_SSI	0xFFFFFFU
-#define TETRA_CALL_INFO_IDLE_RESET_BURSTS 8
+#define TETRA_CALL_INFO_IDLE_RESET_BURSTS 32
 
 /* Chapter 22.2.x */
 enum tetra_log_chan {
