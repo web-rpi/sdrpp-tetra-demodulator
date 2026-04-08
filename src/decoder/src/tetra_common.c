@@ -242,7 +242,6 @@ void tetra_reset_call_info(struct tetra_display_state *tds)
 	tds->call_carrier = -1;
 	tds->call_timeslot = -1;
 	tds->call_encrypted = -1;
-	tds->call_duplex_khz = -1;
 }
 
 void tetra_reset_call_info_state(struct tetra_mac_state *tms)

@@ -291,7 +291,8 @@ struct tetra_display_state {
 	int call_carrier;//
 	int call_timeslot;//
 	int call_encrypted;//
-	int call_duplex_khz;//
+	int call_duplex_table;//
+	int call_duplex_spacing_khz;//
 	bool last_crc_fail;//
 	bool advanced_link;
 	bool air_encryption;

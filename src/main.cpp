@@ -305,6 +305,8 @@ private:
             if (ImGui::CollapsingHeader(CONCAT("Cell Info##_tetrademod_cell_info_", _this->name), ImGuiTreeNodeFlags_DefaultOpen)) {
                 int dl_usg = _this->osmotetradecoder.getDlUsage();
                 int ul_usg = _this->osmotetradecoder.getUlUsage();
+                int duplex_table = _this->osmotetradecoder.getCallDuplexTable();
+                int duplex_spacing_khz = _this->osmotetradecoder.getCallDuplexSpacingKHz();
                 ImGui::Text("DL:");ImGui::SameLine();
                 ImGui::TextColored(ImVec4(0.95, 0.95, 0.05, 1.0), "%7.3f", ((float)_this->osmotetradecoder.getDlFreq()/1000000.0f));ImGui::SameLine();
                 ImGui::Text(" MHz ");ImGui::SameLine();
@@ -329,6 +331,12 @@ private:
                 ImGui::TextColored(ImVec4(0.95, 0.95, 0.05, 1.0), "0x%02x", _this->osmotetradecoder.getCc());ImGui::SameLine();
                 ImGui::Text("| LA: ");ImGui::SameLine();
                 ImGui::TextColored(ImVec4(0.95, 0.95, 0.05, 1.0), "%05d", _this->osmotetradecoder.getLa());
+                ImGui::Text("Duplex Table:"); ImGui::SameLine();
+                if (duplex_table >= 0) { ImGui::TextColored(ImVec4(0.95, 0.95, 0.05, 1.0), "%d", duplex_table); }
+                else { ImGui::TextColored(ImVec4(0.8, 0.8, 0.8, 1.0), "n/a"); }
+                ImGui::Text("Duplex Spacing:"); ImGui::SameLine();
+                if (duplex_spacing_khz >= 0) { ImGui::TextColored(ImVec4(0.95, 0.95, 0.05, 1.0), "%d kHz", duplex_spacing_khz); }
+                else { ImGui::TextColored(ImVec4(0.8, 0.8, 0.8, 1.0), "n/a"); }
                 ImVec4 on_color = ImVec4(0.05, 0.95, 0.05, 1.0);
                 ImVec4 off_color = ImVec4(0.95, 0.05, 0.05, 1.0);
                 ImGui::TextColored(_this->osmotetradecoder.getAdvancedLink() ? on_color : off_color, "Adv. link  ");ImGui::SameLine();
@@ -351,7 +359,6 @@ private:
                 int call_carrier = _this->osmotetradecoder.getCallCarrier();
                 int call_timeslot = _this->osmotetradecoder.getCallTimeslot();
                 int call_encrypted = _this->osmotetradecoder.getCallEncrypted();
-                int call_duplex_khz = _this->osmotetradecoder.getCallDuplexKHz();
 
                 ImGui::Text("Call ID:"); ImGui::SameLine();
                 if (call_id >= 0) { ImGui::TextColored(ImVec4(0.95, 0.95, 0.05, 1.0), "%d", call_id); }
@@ -379,10 +386,6 @@ private:
                 ImGui::Text("Encrypted:"); ImGui::SameLine();
                 if (call_encrypted > 0) { ImGui::TextColored(ImVec4(0.95, 0.95, 0.05, 1.0), "Yes"); }
                 else if (call_encrypted == 0) { ImGui::TextColored(ImVec4(0.95, 0.95, 0.05, 1.0), "No"); }
-                else { ImGui::TextColored(ImVec4(0.8, 0.8, 0.8, 1.0), "n/a"); }
-
-                ImGui::Text("Duplex:"); ImGui::SameLine();
-                if (call_duplex_khz >= 0) { ImGui::TextColored(ImVec4(0.95, 0.95, 0.05, 1.0), "%.3f MHz", call_duplex_khz / 1000.0f); }
                 else { ImGui::TextColored(ImVec4(0.8, 0.8, 0.8, 1.0), "n/a"); }
             }
             if(crc_failed) {

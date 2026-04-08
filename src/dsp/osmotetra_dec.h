@@ -61,6 +61,8 @@ namespace dsp {
             memset(tms->tcs, 0, sizeof(struct tetra_crypto_state));
             tms->t_display_st = (struct tetra_display_state*)malloc(sizeof(struct tetra_display_state));
             memset(tms->t_display_st, 0, sizeof(struct tetra_display_state));
+            tms->t_display_st->call_duplex_table = -1;
+            tms->t_display_st->call_duplex_spacing_khz = -1;
             tetra_reset_call_info_state(tms);
             tetra_crypto_state_init(tms->tcs);
             trs = (struct tetra_rx_state*)malloc(sizeof(struct tetra_rx_state));
@@ -185,8 +187,11 @@ namespace dsp {
         int getCallEncrypted() {
             return tms->t_display_st->call_encrypted;
         }
-        int getCallDuplexKHz() {
-            return tms->t_display_st->call_duplex_khz;
+        int getCallDuplexTable() {
+            return tms->t_display_st->call_duplex_table;
+        }
+        int getCallDuplexSpacingKHz() {
+            return tms->t_display_st->call_duplex_spacing_khz;
         }
         bool getLastCrcFail() {
             return tms->t_display_st->last_crc_fail;

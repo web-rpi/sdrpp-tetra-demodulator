@@ -38,6 +38,8 @@
 /* FIXME move global fragslots to context variable */
 // struct fragslot fragslots[FRAGSLOT_NR_SLOTS] = {0};
 
+static void tetra_set_call_duplex_info(struct tetra_display_state *tds, uint8_t band, uint8_t duplex_table);
+
 void init_fragslot(struct fragslot *fragslot)
 {
 	if (fragslot->msgb) {
@@ -109,9 +111,7 @@ static int rx_bcast(struct tetra_tmvsap_prim *tmvp, struct tetra_mac_state *tms)
 		// dl_freq, ul_freq, sid.mle_si.bs_service_details);
 	tms->t_display_st->dl_freq = dl_freq;
 	tms->t_display_st->ul_freq = ul_freq;
-	if (dl_freq > 0 && ul_freq > 0) {
-		tms->t_display_st->call_duplex_khz = (int)(labs((long)ul_freq - (long)dl_freq) / 1000);
-	}
+	tetra_set_call_duplex_info(tms->t_display_st, sid.freq_band, sid.duplex_spacing);
 	if (sid.cck_valid_no_hf) {
 		// printf("CCK ID %u", sid.cck_id);
 	} else {
@@ -160,9 +160,6 @@ static int rx_bcast(struct tetra_tmvsap_prim *tmvp, struct tetra_mac_state *tms)
 	}
 
 	memcpy(&tms->last_sid, &sid, sizeof(sid));
-	if (tms->t_display_st->call_duplex_khz < 0) {
-		tms->t_display_st->call_duplex_khz = tetra_get_duplex_spacing_khz(sid.freq_band, sid.duplex_spacing);
-	}
 
 	/* Update crypto state */
 	tms->t_display_st->la = sid.mle_si.la;
@@ -243,6 +240,15 @@ static void tetra_update_call_parties(struct tetra_display_state *tds, uint8_t u
 		}
 		break;
 	}
+}
+
+static void tetra_set_call_duplex_info(struct tetra_display_state *tds, uint8_t band, uint8_t duplex_table)
+{
+	if (!tds)
+		return;
+
+	tds->call_duplex_table = duplex_table;
+	tds->call_duplex_spacing_khz = tetra_get_duplex_spacing_khz(band, duplex_table);
 }
 
 static int rx_resrc(struct tetra_tmvsap_prim *tmvp, struct tetra_mac_state *tms)
@@ -361,11 +367,17 @@ static int rx_resrc(struct tetra_tmvsap_prim *tmvp, struct tetra_mac_state *tms)
 		tms->t_display_st->call_encrypted = rsd.encryption_mode > 0 ? 1 : 0;
 		tms->t_display_st->call_timeslot = candidate_call_timeslot;
 		tms->t_display_st->call_carrier = candidate_call_carrier;
-		if (rsd.chan_alloc_pres && rsd.cad.ext_carr_pres) {
-			int ext_duplex_khz = tetra_get_duplex_spacing_khz(rsd.cad.ext_carr.freq_band, rsd.cad.ext_carr.duplex_spc);
-			if (ext_duplex_khz >= 0) {
-				tms->t_display_st->call_duplex_khz = ext_duplex_khz;
-			}
+		if (rsd.cad.ext_carr_pres) {
+			tetra_set_call_duplex_info(tms->t_display_st,
+						   rsd.cad.ext_carr.freq_band,
+						   rsd.cad.ext_carr.duplex_spc);
+		} else if (tms->t_display_st->dl_freq > 0) {
+			tetra_set_call_duplex_info(tms->t_display_st,
+						   tms->last_sid.freq_band,
+						   tms->last_sid.duplex_spacing);
+		} else {
+			tms->t_display_st->call_duplex_table = -1;
+			tms->t_display_st->call_duplex_spacing_khz = -1;
 		}
 
 		tetra_update_call_parties(tms->t_display_st, rsd.cad.ul_dl, rsd.addr.ssi);
